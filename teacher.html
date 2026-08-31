@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teacher Dashboard – Animal Life Cycle Rescue Mission</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #0d1b2a;
+      --card: #1b263b;
+      --card2: #243447;
+      --primary: #00c853;
+      --accent: #4fc3f7;
+      --warn: #ff9800;
+      --danger: #ef5350;
+      --text: #e0e6ed;
+      --muted: #90a4ae;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+    .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 0.95rem; }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 14px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input[type="text"] {
+      width: 100%;
+      max-width: 360px;
+      padding: 12px 14px;
+      border: 2px solid #37474f;
+      border-radius: 8px;
+      background: var(--card2);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    input:focus { outline: none; border-color: var(--accent); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #000; }
+    .btn-accent { background: var(--accent); color: #000; }
+    .btn-warn { background: var(--warn); color: #000; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 12px; }
+
+    .session-code-box {
+      background: var(--card2);
+      border: 2px dashed var(--accent);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      margin-top: 16px;
+      display: none;
+    }
+    .session-code-box.show { display: block; }
+    .big-code {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: 4px;
+      color: var(--primary);
+      margin: 8px 0;
+      font-family: monospace;
+    }
+    .link-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+    }
+    .link-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 10px;
+      background: #0d1b2a;
+      border: 1px solid #37474f;
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat {
+      background: var(--card2);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid #37474f;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    tr:hover td { background: rgba(79,195,247,0.05); }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .badge-progress { background: #1565c0; color: #fff; }
+    .badge-done { background: var(--primary); color: #000; }
+
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 32px;
+      font-size: 1rem;
+    }
+
+    /* Answers detail */
+    .answers-detail {
+      margin-top: 12px;
+      max-height: 280px;
+      overflow-y: auto;
+      background: var(--card2);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.85rem;
+      display: none;
+    }
+    .answers-detail.show { display: block; }
+    .ans-item {
+      padding: 6px 0;
+      border-bottom: 1px solid #37474f;
+    }
+    .ans-item:last-child { border-bottom: none; }
+    .ok { color: var(--primary); }
+    .no { color: var(--warn); }
+
+    .status-dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      background: var(--primary);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .msg {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .msg.show { display: block; }
+    .msg.ok { background: rgba(0,200,83,0.15); color: var(--primary); }
+    .msg.err { background: rgba(239,83,80,0.15); color: var(--danger); }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .big-code { font-size: 1.6rem; letter-spacing: 2px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🔬 Teacher Dashboard</h1>
+    <p class="subtitle">Animal Life Cycle Rescue Mission · Live classroom view</p>
+
+    <!-- Create Session -->
+    <div class="card" id="createCard">
+      <h2>📋 Create New Session</h2>
+      <label for="sessionTitle">Session title</label>
+      <input type="text" id="sessionTitle" placeholder="e.g. Science 4 – Life Cycles" value="Science 4 – Life Cycles" />
+      <div class="row">
+        <button class="btn btn-primary" id="btnCreate">➕ Create New Session</button>
+      </div>
+      <div class="msg" id="createMsg"></div>
+
+      <div class="session-code-box" id="codeBox">
+        <p style="color:var(--muted);">Share this code with students:</p>
+        <div class="big-code" id="sessionCodeDisplay">————</div>
+        <p style="color:var(--muted);font-size:0.9rem;">Or share this link:</p>
+        <div class="link-row">
+          <input class="link-input" id="shareLink" readonly />
+          <button class="btn btn-accent" id="btnCopyLink">📋 Copy Link</button>
+          <button class="btn btn-outline" id="btnCopyCode">Copy Code</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Participants -->
+    <div class="card" id="liveCard" style="display:none;">
+      <h2>
+        <span class="status-dot"></span>
+        Live Participants
+      </h2>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="statCount">0</div>
+          <div class="stat-label">Students</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="statAvg">0</div>
+          <div class="stat-label">Avg Score</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="statDone">0</div>
+          <div class="stat-label">Completed</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Score</th>
+              <th>Progress</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="participantBody">
+            <tr><td colspan="5" class="empty">Waiting for students to join…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="answers-detail" id="answersDetail"></div>
+
+      <div class="controls">
+        <button class="btn btn-warn" id="btnRefresh">🔄 Refresh</button>
+        <button class="btn btn-outline" id="btnToggleAnswers">📝 Show / Hide Answers</button>
+        <button class="btn btn-danger" id="btnClose">⏹ Close Session</button>
+        <button class="btn btn-danger" id="btnReset">🗑️ Reset Session</button>
+      </div>
+      <div class="msg" id="controlMsg"></div>
+    </div>
+
+    <!-- How to use -->
+    <div class="card">
+      <h2>📖 How to run this in Zoom / Google Meet</h2>
+      <ol style="padding-left:20px;color:var(--muted);line-height:1.7;font-size:0.95rem;">
+        <li>Create a session above and share the <strong>session code</strong> or link with students (chat or screen).</li>
+        <li>Students open <code>index.html</code> (or the hosted URL), enter their name + code, and click Join Mission.</li>
+        <li>Share your screen showing this dashboard so the class can see live scores.</li>
+        <li>Guide students through Mission 1 (butterfly order), Mission 2 (frog + habitat), then the quick quiz.</li>
+        <li>When finished, use Close Session or Reset for the next class.</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       SUPABASE CONFIG – SAME VALUES AS index.html
+       ============================================================ */
+    const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+    let supabase = null;
+    let currentSession = null; // { id, session_code, title }
+    let participants = [];
+    let answers = [];
+    let showAnswers = false;
+    let channel = null;
+
+    function initClient() {
+      if (SUPABASE_URL.includes('YOUR_') || SUPABASE_ANON_KEY.includes('YOUR_')) {
+        alert('Please set SUPABASE_URL and SUPABASE_ANON_KEY in teacher.html (same as index.html).');
+        return false;
+      }
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      return true;
+    }
+
+    function generateCode() {
+      const animals = ['FROG', 'BUTT', 'CHICK', 'LIFE', 'EGG', 'TAD', 'WING', 'POND'];
+      const a = animals[Math.floor(Math.random() * animals.length)];
+      const n = Math.floor(1000 + Math.random() * 9000);
+      return a + n;
+    }
+
+    function showMsg(elId, text, ok) {
+      const el = document.getElementById(elId);
+      el.textContent = text;
+      el.className = 'msg show ' + (ok ? 'ok' : 'err');
+      setTimeout(() => el.classList.remove('show'), 4000);
+    }
+
+    async function createSession() {
+      if (!initClient()) return;
+      const title = document.getElementById('sessionTitle').value.trim() || 'Life Cycles Session';
+      const code = generateCode();
+
+      try {
+        const { data, error } = await supabase
+          .from('game_sessions')
+          .insert({
+            session_code: code,
+            title,
+            is_active: true
+          })
+          .select('id, session_code, title')
+          .single();
+
+        if (error) throw error;
+        currentSession = data;
+
+        document.getElementById('sessionCodeDisplay').textContent = code;
+        const base = location.href.replace(/teacher\.html.*/, 'index.html');
+        const link = base + '?session=' + code;
+        document.getElementById('shareLink').value = link;
+        document.getElementById('codeBox').classList.add('show');
+        document.getElementById('liveCard').style.display = 'block';
+        showMsg('createMsg', 'Session created! Share the code with students.', true);
+
+        startRealtime();
+        await loadParticipants();
+      } catch (e) {
+        console.error(e);
+        showMsg('createMsg', e.message || 'Could not create session.', false);
+      }
+    }
+
+    async function loadParticipants() {
+      if (!currentSession || !supabase) return;
+      const { data, error } = await supabase
+        .from('participants')
+        .select('*')
+        .eq('session_id', currentSession.id)
+        .order('joined_at', { ascending: true });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+      participants = data || [];
+      await loadAnswers();
+      renderTable();
+    }
+
+    async function loadAnswers() {
+      if (!currentSession) return;
+      const { data } = await supabase
+        .from('answers')
+        .select('*')
+        .eq('session_id', currentSession.id);
+      answers = data || [];
+    }
+
+    function getProgress(p) {
+      const ids = answers.filter(a => a.participant_id === p.id).map(a => a.question_id);
+      const hasB = ids.includes('butterfly_order');
+      const hasF = ids.includes('frog_order') || ids.includes('frog_habitat');
+      const quizCount = ['quiz_1','quiz_2','quiz_3'].filter(q => ids.includes(q)).length;
+      if (p.completed) return 'Completed';
+      if (quizCount > 0 || (hasB && hasF)) return 'Mission 3';
+      if (hasF) return 'Mission 2 done';
+      if (hasB) return 'Mission 1 done';
+      return 'Just joined';
+    }
+
+    function renderTable() {
+      const body = document.getElementById('participantBody');
+      if (!participants.length) {
+        body.innerHTML = '<tr><td colspan="5" class="empty">Waiting for students to join…</td></tr>';
+      } else {
+        body.innerHTML = participants.map(p => {
+          const progress = getProgress(p);
+          const status = p.completed
+            ? '<span class="badge badge-done">Completed</span>'
+            : '<span class="badge badge-progress">In progress</span>';
+          return `<tr>
+            <td><strong>${escapeHtml(p.display_name)}</strong></td>
+            <td>${p.score}</td>
+            <td>${progress}</td>
+            <td>${status}</td>
+            <td><button class="btn btn-outline" style="padding:6px 10px;font-size:0.8rem;" onclick="showStudentAnswers('${p.id}')">Answers</button></td>
+          </tr>`;
+        }).join('');
+      }
+
+      const count = participants.length;
+      const done = participants.filter(p => p.completed).length;
+      const avg = count ? Math.round(participants.reduce((s, p) => s + p.score, 0) / count) : 0;
+      document.getElementById('statCount').textContent = count;
+      document.getElementById('statAvg').textContent = avg;
+      document.getElementById('statDone').textContent = done;
+
+      if (showAnswers) renderAllAnswers();
+    }
+
+    function escapeHtml(t) {
+      const d = document.createElement('div');
+      d.textContent = t;
+      return d.innerHTML;
+    }
+
+    window.showStudentAnswers = function (pid) {
+      const p = participants.find(x => x.id === pid);
+      const list = answers.filter(a => a.participant_id === pid);
+      const el = document.getElementById('answersDetail');
+      if (!list.length) {
+        el.innerHTML = `<strong>${escapeHtml(p?.display_name || '')}</strong> has not answered yet.`;
+      } else {
+        el.innerHTML = `<strong>${escapeHtml(p?.display_name || '')}</strong><br>` +
+          list.map(a => {
+            const cls = a.is_correct ? 'ok' : 'no';
+            return `<div class="ans-item ${cls}">${a.question_id}: ${escapeHtml(a.answer)} (${a.is_correct ? '+' + a.points : '0'} pts)</div>`;
+          }).join('');
+      }
+      el.classList.add('show');
+      showAnswers = true;
+    };
+
+    function renderAllAnswers() {
+      const el = document.getElementById('answersDetail');
+      if (!participants.length) {
+        el.innerHTML = 'No participants yet.';
+        el.classList.add('show');
+        return;
+      }
+      let html = '';
+      participants.forEach(p => {
+        const list = answers.filter(a => a.participant_id === p.id);
+        html += `<div style="margin-bottom:12px;"><strong>${escapeHtml(p.display_name)}</strong> (score ${p.score})<br>`;
+        if (!list.length) html += '<span style="color:var(--muted)">No answers yet</span>';
+        else {
+          list.forEach(a => {
+            const cls = a.is_correct ? 'ok' : 'no';
+            html += `<div class="ans-item ${cls}">${a.question_id}: ${escapeHtml(a.answer)}</div>`;
+          });
+        }
+        html += '</div>';
+      });
+      el.innerHTML = html;
+      el.classList.add('show');
+    }
+
+    function startRealtime() {
+      if (!supabase || !currentSession) return;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+      channel = supabase
+        .channel('session-' + currentSession.id)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'participants', filter: `session_id=eq.${currentSession.id}` },
+          () => loadParticipants()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'answers', filter: `session_id=eq.${currentSession.id}` },
+          () => loadParticipants()
+        )
+        .subscribe();
+    }
+
+    async function closeSession() {
+      if (!currentSession) return;
+      if (!confirm('Close this session? Students will no longer be able to join.')) return;
+      await supabase
+        .from('game_sessions')
+        .update({ is_active: false })
+        .eq('id', currentSession.id);
+      showMsg('controlMsg', 'Session closed.', true);
+    }
+
+    async function resetSession() {
+      if (!currentSession) return;
+      if (!confirm('Delete ALL participants and answers for this session? This cannot be undone.')) return;
+      await supabase.from('answers').delete().eq('session_id', currentSession.id);
+      await supabase.from('participants').delete().eq('session_id', currentSession.id);
+      showMsg('controlMsg', 'Session reset. Students can join again with the same code.', true);
+      await loadParticipants();
+    }
+
+    // Events
+    document.getElementById('btnCreate').addEventListener('click', createSession);
+    document.getElementById('btnCopyLink').addEventListener('click', () => {
+      const input = document.getElementById('shareLink');
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => showMsg('createMsg', 'Link copied!', true));
+    });
+    document.getElementById('btnCopyCode').addEventListener('click', () => {
+      const code = document.getElementById('sessionCodeDisplay').textContent;
+      navigator.clipboard.writeText(code).then(() => showMsg('createMsg', 'Code copied!', true));
+    });
+    document.getElementById('btnRefresh').addEventListener('click', loadParticipants);
+    document.getElementById('btnToggleAnswers').addEventListener('click', () => {
+      showAnswers = !showAnswers;
+      if (showAnswers) renderAllAnswers();
+      else document.getElementById('answersDetail').classList.remove('show');
+    });
+    document.getElementById('btnClose').addEventListener('click', closeSession);
+    document.getElementById('btnReset').addEventListener('click', resetSession);
+  </script>
+</body>
+</html>
