@@ -628,8 +628,8 @@
     /* ============================================================
        SUPABASE CONFIG – PASTE YOUR VALUES HERE
        ============================================================ */
-    const SUPABASE_URL = 'https://ytrigskagdrvnfebgheb.supabase.coL';       // e.g. https://xxxx.supabase.co
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0cmlnc2thZ2Rydm5mZWJnaGViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNjA3MjMsImV4cCI6MjEwMzczNjcyM30.9A3r0l7HZkrwdngQAPpWsyLOLMgvlVQeAVn4Ro1dN5g'; // publishable / anon key
+    const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';       // e.g. https://xxxx.supabase.co
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // publishable / anon key
 
     // CHANGE QUESTIONS, POINTS, AND ORDER HERE
     const POINTS = {
@@ -675,7 +675,7 @@
     /* ============================================================
        State
        ============================================================ */
-    let supabase = null;
+    let sb = null;
     let sessionId = null;
     let participantId = null;
     let userId = null;
@@ -772,10 +772,10 @@
       showOverlay('Joining mission…');
 
       try {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // Look up session by code
-        const { data: sessions, error: sErr } = await supabase
+        const { data: sessions, error: sErr } = await sb
           .from('game_sessions')
           .select('id, is_active, title')
           .eq('session_code', code)
@@ -789,12 +789,12 @@
         sessionId = sessions[0].id;
 
         // Anonymous sign-in
-        const { data: authData, error: authErr } = await supabase.auth.signInAnonymously();
+        const { data: authData, error: authErr } = await sb.auth.signInAnonymously();
         if (authErr) throw authErr;
         userId = authData.user.id;
 
         // Insert participant
-        const { data: part, error: pErr } = await supabase
+        const { data: part, error: pErr } = await sb
           .from('participants')
           .insert({
             session_id: sessionId,
@@ -829,9 +829,9 @@
     }
 
     async function saveAnswer(questionId, answer, isCorrect, points) {
-      if (!supabase || !participantId) return;
+      if (!sb || !participantId) return;
       try {
-        await supabase.from('answers').upsert({
+        await sb.from('answers').upsert({
           session_id: sessionId,
           participant_id: participantId,
           question_id: questionId,
@@ -842,7 +842,7 @@
 
         if (isCorrect) {
           score += points;
-          await supabase
+          await sb
             .from('participants')
             .update({ score })
             .eq('id', participantId);
@@ -855,9 +855,9 @@
     }
 
     async function markCompleted() {
-      if (!supabase || !participantId) return;
+      if (!sb || !participantId) return;
       try {
-        await supabase
+        await sb
           .from('participants')
           .update({ completed: true, score })
           .eq('id', participantId);

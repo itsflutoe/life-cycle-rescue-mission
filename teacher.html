@@ -330,11 +330,10 @@
     /* ============================================================
        SUPABASE CONFIG – SAME VALUES AS index.html
        ============================================================ */
-     const SUPABASE_URL = 'https://ytrigskagdrvnfebgheb.supabase.coL';       // e.g. https://xxxx.supabase.co
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0cmlnc2thZ2Rydm5mZWJnaGViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNjA3MjMsImV4cCI6MjEwMzczNjcyM30.9A3r0l7HZkrwdngQAPpWsyLOLMgvlVQeAVn4Ro1dN5g'; // publishable / anon key
+    const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
-
-    let supabase = null;
+    let sb = null;
     let currentSession = null; // { id, session_code, title }
     let participants = [];
     let answers = [];
@@ -346,7 +345,7 @@
         alert('Please set SUPABASE_URL and SUPABASE_ANON_KEY in teacher.html (same as index.html).');
         return false;
       }
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       return true;
     }
 
@@ -370,7 +369,7 @@
       const code = generateCode();
 
       try {
-        const { data, error } = await supabase
+        const { data, error } = await sb
           .from('game_sessions')
           .insert({
             session_code: code,
@@ -400,8 +399,8 @@
     }
 
     async function loadParticipants() {
-      if (!currentSession || !supabase) return;
-      const { data, error } = await supabase
+      if (!currentSession || !sb) return;
+      const { data, error } = await sb
         .from('participants')
         .select('*')
         .eq('session_id', currentSession.id)
@@ -418,7 +417,7 @@
 
     async function loadAnswers() {
       if (!currentSession) return;
-      const { data } = await supabase
+      const { data } = await sb
         .from('answers')
         .select('*')
         .eq('session_id', currentSession.id);
@@ -515,11 +514,11 @@
     }
 
     function startRealtime() {
-      if (!supabase || !currentSession) return;
+      if (!sb || !currentSession) return;
       if (channel) {
-        supabase.removeChannel(channel);
+        sb.removeChannel(channel);
       }
-      channel = supabase
+      channel = sb
         .channel('session-' + currentSession.id)
         .on(
           'postgres_changes',
@@ -537,7 +536,7 @@
     async function closeSession() {
       if (!currentSession) return;
       if (!confirm('Close this session? Students will no longer be able to join.')) return;
-      await supabase
+      await sb
         .from('game_sessions')
         .update({ is_active: false })
         .eq('id', currentSession.id);
@@ -547,8 +546,8 @@
     async function resetSession() {
       if (!currentSession) return;
       if (!confirm('Delete ALL participants and answers for this session? This cannot be undone.')) return;
-      await supabase.from('answers').delete().eq('session_id', currentSession.id);
-      await supabase.from('participants').delete().eq('session_id', currentSession.id);
+      await sb.from('answers').delete().eq('session_id', currentSession.id);
+      await sb.from('participants').delete().eq('session_id', currentSession.id);
       showMsg('controlMsg', 'Session reset. Students can join again with the same code.', true);
       await loadParticipants();
     }
